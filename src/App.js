@@ -7,6 +7,7 @@ import './App.css';
     //MONTEIRO, Marko. Construindo imagens e territórios: pensando a visualidade e a materialidade do sensoriamento remoto. Hist. cienc. saude-Manguinhos,  Rio de Janeiro ,  v. 22, n. 2, p. 577-591,  jun.  2015 .   Disponível em <http://www.scielo.br/scielo.php?script=sci_arttext&pid=S0104-59702015000200016&lng=pt&nrm=iso>. acessos em  29  nov.  2020.  https://doi.org/10.1590/S0104-59702015000200006.
 
 function AbntItem({reference}) {
+  
     console.log(reference);
     const authors = reference.authors.flatMap(item => `${item.family.toUpperCase()}, ${item.given}`).join('; ');
 
