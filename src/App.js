@@ -7,45 +7,62 @@ import './App.css';
     //MONTEIRO, Marko. Construindo imagens e territórios: pensando a visualidade e a materialidade do sensoriamento remoto. Hist. cienc. saude-Manguinhos,  Rio de Janeiro ,  v. 22, n. 2, p. 577-591,  jun.  2015 .   Disponível em <http://www.scielo.br/scielo.php?script=sci_arttext&pid=S0104-59702015000200016&lng=pt&nrm=iso>. acessos em  29  nov.  2020.  https://doi.org/10.1590/S0104-59702015000200006.
 
 function AbntItem({reference}) {
-  
-    console.log(reference);
-    const authors = reference.authors.flatMap(item => `${item.family.toUpperCase()}, ${item.given}`).join('; ');
 
     const months = ['jan', 'fev', 'mar', 'abr', 'maio', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 
+    //Format reference by ommiting lacking information, might not be the best solution.
+    function formatReference(reference) {
+        const authorsString = `${reference.authors.flatMap(item => `${item.family.toUpperCase()}, ${item.given}`).join('; ')}.`;
+        const titleString = reference.title ? `${reference.title}.` : '';
+        const journalString = reference.journal ? `${reference.journal},` : '';
+        const volumeString = reference.volume ? `v. ${reference.volume},` : '';
+        const issueString = reference.issue ? `n. ${reference.issue},` : '';
+        const pagesString = reference.pages ? `p. ${reference.pages},` : '';
+        const monthString = reference.month ? `${months[reference.month-1]}.` : '';
+        const yearString = reference.year ? `${reference.year}.` : '';
+        const availableAtSring = reference.availableAt ? `Disponível em: <${reference.availableAt}>` : '';
+        const doiString = reference.doi ? `DOI: ${reference.doi}` : '';
+       
+        return [authorsString, titleString, journalString, volumeString, issueString, pagesString, monthString, yearString, availableAtSring, doiString].filter(val => val).join(' ');
+    }
+    
+
     return (
-    <p>{`${authors}. ${reference.title}. ${reference.journal}, v. ${reference.volume}, n. ${reference.issue}, p. ${reference.pages}, ${months[reference.month-1]}. ${reference.year}. Disponível em: <${reference.available_at}>`}</p>
+        <p>{formatReference(reference)}</p>
+    //<p>{`${authors}. ${reference.title}. ${reference.journal}, v. ${reference.volume}, n. ${reference.issue}, p. ${reference.pages}, ${months[reference.month-1]}. ${reference.year}. Disponível em: <${reference.available_at}>, DOI: <${reference.doi}>`}</p>
     )
 }
 
-function useCrossRefApi(initialUrl, initialData) {
+function useFetch(initialUrl, initialData) {
     const [data, setData] = React.useState(initialData);
     const [url, setUrl] = React.useState(initialUrl);
 
     const [isLoading, setIsLoading] = React.useState(false);
     const [isError, setIsError] = React.useState(false);
 
-    async function fetchData (url) {
-        if(!url) return;
-
-        setIsError(false);
-        setIsLoading(true);
-
-        try {
-            const result = await fetch(url);
-            const resultData = await result.json();
-            console.log('fetching');
-            
-            setData(resultData);
-            
-        } catch (error) {
-            setIsError(true);
-        }
-        setIsLoading(false);
-    }
-
     React.useEffect(() => {
         console.log('to fetch')
+
+        async function fetchData (url) {
+            if(!url) return;
+            console.log('fetching');
+            setIsError(false);
+            setIsLoading(true);
+    
+            try {
+                const contentNegotiationHeader = new Headers({'Accept': 'application/vnd.citationstyles.csl+json, application/rdf+xml, text/x-bibliography; style=associacao-brasileira-de-norams-tecnicas'});
+                const result = await fetch(url, {headers: contentNegotiationHeader, mode: 'cors'});
+                const resultData = await result.json();
+                
+                console.log(resultData);
+                setData(resultData);
+                
+            } catch (error) {
+                setIsError(true);
+            }
+            setIsLoading(false);
+        }
+
         fetchData(url);
     },[url]);
 
@@ -55,12 +72,16 @@ function useCrossRefApi(initialUrl, initialData) {
 function ReferenceForm({setUrl}) {
     const [query, setQuery] = React.useState("");
 
+    function handleSubmit(event) {
+        event.preventDefault();
+        //setUrl(`https://api.crossref.org/works/${query}`);
+        const queryUrl = query.includes('https://doi.org/') ? query : 'https://doi.org/'+query;
+        setUrl(queryUrl);
+        setQuery('');
+    }
+
     return (
-        <form onSubmit={event => {
-            event.preventDefault();
-            setUrl(`https://api.crossref.org/works/${query}`);
-            setQuery('');
-        }}>
+        <form onSubmit={event => {handleSubmit(event)}}>
             <input
                 type="text"
                 value={query}
@@ -74,7 +95,7 @@ function ReferenceForm({setUrl}) {
 function App() {
     const [dataList, setDataList] = React.useState({references: []});
 
-    const [{data, isLoading, isError}, setUrl] = useCrossRefApi('', '');
+    const [{data, isLoading, isError}, setUrl] = useFetch('', '');
     
     React.useEffect(() => {
         console.log('efecting')
@@ -82,15 +103,16 @@ function App() {
 
         function buildReferenceObject(data) {
             return {
-                authors: data.message.author,
-                title: data.message.title[0],
-                journal: data.message['container-title'][0],
-                volume: data.message.volume,
-                issue: data.message.issue,
-                pages: data.message.page,
-                month: data.message.issued['date-parts'][0][1],
-                year: data.message.issued['date-parts'][0][0],
-                available_at: data.message.URL
+                authors: data.author,
+                title: data.title,
+                journal: data['container-title'],
+                volume: data.volume,
+                issue: data.issue,
+                pages: data.page,
+                month: data.issued['date-parts'][0][1],
+                year: data.issued['date-parts'][0][0],
+                availableAt: data.link[0].URL,
+                doi: data.URL
             }
         }
         const newReference = buildReferenceObject(data);
@@ -109,12 +131,13 @@ function App() {
                     Input a DOI and get a ABNT formatted reference.
                 </p>
                 <p>
-                    This uses CrossRef free and open API so be mindfull about the number of requests.
+                    This uses simple content negotiation to retrieve metadata from DOIs.
                 </p>
                 <div>
                     <p>Here are some DOIs you can test:</p>
                     <div>https://doi.org/10.1590/S0104-59702015000200006</div>
                     <div>https://doi.org/10.1177/0306312717730428</div>
+                    <div>https://doi.org/10.1177/0306312718783087</div>
                 </div>
                 <p></p>
                 <article>
@@ -125,13 +148,13 @@ function App() {
             <section>
                 <h2>Reference List</h2>
                 
-                {isError && <div>Opps, DOI not found...</div>}
+                {isError && <div>Opps, DOI: not found...</div>}
                 {isLoading && <div>Loading...</div>}
             
                 <ul className="left">
                     {
                         dataList.references.map( (item, index) => (
-                            <AbntItem reference={item} key={item.available_at}></AbntItem>
+                            <AbntItem reference={item} key={index} index={index}></AbntItem>
                         ))
                     }
                 </ul>
