@@ -33,7 +33,7 @@ function AbntItem({reference}) {
     )
 }
 
-function useFetch(initialUrl, initialData) {
+function useFetch(initialUrl, initialData, options) {
     const [data, setData] = React.useState(initialData);
     const [url, setUrl] = React.useState(initialUrl);
 
@@ -95,7 +95,8 @@ function ReferenceForm({setUrl}) {
 function App() {
     const [dataList, setDataList] = React.useState({references: []});
 
-    const [{data, isLoading, isError}, setUrl] = useFetch('', '');
+    const contentNegotiationHeader = new Headers({'Accept': 'application/vnd.citationstyles.csl+json, application/rdf+xml, text/x-bibliography; style=associacao-brasileira-de-norams-tecnicas'});
+    const [{data, isLoading, isError}, setUrl] = useFetch('', '', {headers: contentNegotiationHeader, mode: 'cors'});
     
     React.useEffect(() => {
         console.log('efecting')
