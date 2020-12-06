@@ -1,4 +1,5 @@
 import React from 'react';
+import {useDOI, useFreeSearch} from './Hooks';
 import './App.css';
 
     //Formato Documento Eletrônico(ABNT)
@@ -32,11 +33,10 @@ function AbntItem({reference}) {
     )
 }
 
-function SearchItem({item, setRequest, setSearchList}) {
+function SearchItem({item, setDOI, setSearchList}) {
 
     function handleOnClick(event) {
-        const contentNegotiationHeader = new Headers({'Accept': 'application/vnd.citationstyles.csl+json, application/rdf+xml, text/x-bibliography; style=associacao-brasileira-de-norams-tecnicas'});
-        setRequest({url: "https://doi.org/"+item.DOI, options: {headers: contentNegotiationHeader, mode:'cors'}});
+        setDOI(item.DOI);
         setSearchList([]);
     }
     console.log(item);
@@ -52,52 +52,12 @@ function SearchItem({item, setRequest, setSearchList}) {
     )
 }
 
-function useFetch(initialUrl, initialData, initialOptions = '') {
-    const [data, setData] = React.useState(initialData);
-    //const [url, setUrl] = React.useState(initialUrl);
-    //const [options, setOptions] = React.useState(initialOptions);
-
-    const [isLoading, setIsLoading] = React.useState(false);
-    const [isError, setIsError] = React.useState(false);
-
-    const [request, setRequest] = React.useState({url: initialUrl, options: initialOptions});
-
-    React.useEffect(() => {
-        console.log('to fetch')
-
-        async function fetchData (url, options = '') {
-            if(!url) return;
-            console.log('fetching');
-            setIsError(false);
-            setIsLoading(true);
-    
-            try {
-                const result = options ? await fetch(url, {...options}) : await fetch(url);
-                const resultData = await result.json();                
-                console.log(resultData);
-                
-                setData(resultData);
-            } catch (error) {
-                setIsError(true);
-            }
-            setIsLoading(false);
-        }
-
-        fetchData(request.url, request.options);
-    },[request]);
-
-    return [{data, isLoading, isError}, setRequest]
-}
-
-function DoiForm({setRequest}) {
+function DoiForm({setDOI}) {
     const [query, setQuery] = React.useState("");
-    const contentNegotiationHeader = new Headers({'Accept': 'application/vnd.citationstyles.csl+json, application/rdf+xml, text/x-bibliography; style=associacao-brasileira-de-norams-tecnicas'});
 
     function handleSubmit(event) {
         event.preventDefault();
-        //setUrl(`https://api.crossref.org/works/${query}`);
-        const queryUrl = query.includes('https://doi.org/') ? query : 'https://doi.org/'+query;
-        setRequest({url: queryUrl, options: {headers: contentNegotiationHeader, mode:'cors'}});
+        setDOI(query);
         setQuery('');
     }
 
@@ -114,14 +74,12 @@ function DoiForm({setRequest}) {
     );
 }
 
-function FreeSearchForm({setSearchRequest}) {
+function FreeSearchForm({setSearchQuery}) {
     const [query, setQuery] = React.useState('');
 
     function handleSubmit(event) {
         event.preventDefault();
-        const formattedQuery = query.split(' ').join('+');
-        console.log(formattedQuery);
-        setSearchRequest({url: `https://api.crossref.org/works?query.bibliographic=${query}`});
+        setSearchQuery(query);
         setQuery('');
     }
 
@@ -136,12 +94,12 @@ function FreeSearchForm({setSearchRequest}) {
 
 function App() {
     const [dataList, setDataList] = React.useState({references: []});
-    const [{data: doiData, isLoading: doiIsLoading, isError: doiIsError}, setRequest] = useFetch('','');
+    const [{data: doiData, isLoading: doiIsLoading, isError: doiIsError}, setDOI] = useDOI('');
 
     //const [{data, isLoading, isError}, setUrl] = useFetch('', '');
 
     const [searchList, setSearchList] = React.useState([]);
-    const [{data: searchData, isLoading: searchIsLoading, isError: searchIsError}, setSearchRequest] = useFetch('','');
+    const [{data: searchData, isLoading: searchIsLoading, isError: searchIsError}, setSearchQuery] = useFreeSearch('');
     
     React.useEffect(() => {
         console.log('effect search')
@@ -197,12 +155,12 @@ function App() {
                 <p></p>
                 <article>
                     DOI Search
-                    <DoiForm setRequest={setRequest}></DoiForm>
+                    <DoiForm setDOI={setDOI}></DoiForm>
                 </article>
                 <p></p>
                 <article>
                     Free Form Search
-                    <FreeSearchForm setSearchRequest={setSearchRequest}></FreeSearchForm>
+                    <FreeSearchForm setSearchQuery={setSearchQuery}></FreeSearchForm>
                 </article>
             </section>
             <section>
@@ -213,7 +171,7 @@ function App() {
                 <ul className="left">
                     {
                         searchList.map( (item, index) => (
-                            <SearchItem item={item} key={index} index={index} setRequest={setRequest} setSearchList={setSearchList}></SearchItem>
+                            <SearchItem item={item} key={index} index={index} setDOI={setDOI} setSearchList={setSearchList}></SearchItem>
                         ))
                     }
                 </ul>
