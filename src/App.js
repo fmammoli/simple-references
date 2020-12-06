@@ -22,7 +22,6 @@ function AbntItem({reference}) {
         const yearString = reference.year ? `${reference.year}.` : '';
         const availableAtSring = reference.availableAt ? `Disponível em: <${reference.availableAt}>` : '';
         const doiString = reference.doi ? `DOI: ${reference.doi}` : '';
-       
         return [authorsString, titleString, journalString, volumeString, issueString, pagesString, monthString, yearString, availableAtSring, doiString].filter(val => val).join(' ');
     }
     
@@ -33,55 +32,78 @@ function AbntItem({reference}) {
     )
 }
 
-function useFetch(initialUrl, initialData) {
+function SearchItem({item, setRequest, setSearchList}) {
+
+    function handleOnClick(event) {
+        const contentNegotiationHeader = new Headers({'Accept': 'application/vnd.citationstyles.csl+json, application/rdf+xml, text/x-bibliography; style=associacao-brasileira-de-norams-tecnicas'});
+        setRequest({url: "https://doi.org/"+item.DOI, options: {headers: contentNegotiationHeader, mode:'cors'}});
+        setSearchList([]);
+    }
+    console.log(item);
+    //onst authorsString = `${item.author.flatMap(element => `${element.family.toUpperCase()}, ${element.given}`).join('; ')}.`;
+
+    return (
+        <li>
+            <p>Title: {item.title[0]}</p>
+            <p>URL: {item.URL}</p>
+            <p>Type: {item.type}</p>
+            <button onClick={event => handleOnClick(event)}>Add</button>
+        </li>
+    )
+}
+
+function useFetch(initialUrl, initialData, initialOptions = '') {
     const [data, setData] = React.useState(initialData);
-    const [url, setUrl] = React.useState(initialUrl);
+    //const [url, setUrl] = React.useState(initialUrl);
+    //const [options, setOptions] = React.useState(initialOptions);
 
     const [isLoading, setIsLoading] = React.useState(false);
     const [isError, setIsError] = React.useState(false);
 
+    const [request, setRequest] = React.useState({url: initialUrl, options: initialOptions});
+
     React.useEffect(() => {
         console.log('to fetch')
 
-        async function fetchData (url) {
+        async function fetchData (url, options = '') {
             if(!url) return;
             console.log('fetching');
             setIsError(false);
             setIsLoading(true);
     
             try {
-                const contentNegotiationHeader = new Headers({'Accept': 'application/vnd.citationstyles.csl+json, application/rdf+xml, text/x-bibliography; style=associacao-brasileira-de-norams-tecnicas'});
-                const result = await fetch(url, {headers: contentNegotiationHeader, mode: 'cors'});
-                const resultData = await result.json();
-                
+                const result = options ? await fetch(url, {...options}) : await fetch(url);
+                const resultData = await result.json();                
                 console.log(resultData);
-                setData(resultData);
                 
+                setData(resultData);
             } catch (error) {
                 setIsError(true);
             }
             setIsLoading(false);
         }
 
-        fetchData(url);
-    },[url]);
+        fetchData(request.url, request.options);
+    },[request]);
 
-    return [{data, isLoading, isError}, setUrl]
+    return [{data, isLoading, isError}, setRequest]
 }
 
-function ReferenceForm({setUrl}) {
+function DoiForm({setRequest}) {
     const [query, setQuery] = React.useState("");
+    const contentNegotiationHeader = new Headers({'Accept': 'application/vnd.citationstyles.csl+json, application/rdf+xml, text/x-bibliography; style=associacao-brasileira-de-norams-tecnicas'});
 
     function handleSubmit(event) {
         event.preventDefault();
         //setUrl(`https://api.crossref.org/works/${query}`);
         const queryUrl = query.includes('https://doi.org/') ? query : 'https://doi.org/'+query;
-        setUrl(queryUrl);
+        setRequest({url: queryUrl, options: {headers: contentNegotiationHeader, mode:'cors'}});
         setQuery('');
     }
 
     return (
         <form onSubmit={event => {handleSubmit(event)}}>
+            DOI input: 
             <input
                 type="text"
                 value={query}
@@ -92,15 +114,46 @@ function ReferenceForm({setUrl}) {
     );
 }
 
+function FreeSearchForm({setSearchRequest}) {
+    const [query, setQuery] = React.useState('');
+
+    function handleSubmit(event) {
+        event.preventDefault();
+        const formattedQuery = query.split(' ').join('+');
+        console.log(formattedQuery);
+        setSearchRequest({url: `https://api.crossref.org/works?query.bibliographic=${query}`});
+        setQuery('');
+    }
+
+    return (
+        <form onSubmit={event => {handleSubmit(event)}}>
+            Free Text Search:
+            <input type="text" value={query} onChange={event => setQuery(event.target.value)}></input>
+            <button type="Submit">Search</button>
+        </form>
+    )
+}
+
 function App() {
     const [dataList, setDataList] = React.useState({references: []});
+    const [{data: doiData, isLoading: doiIsLoading, isError: doiIsError}, setRequest] = useFetch('','');
 
-    const [{data, isLoading, isError}, setUrl] = useFetch('', '');
+    //const [{data, isLoading, isError}, setUrl] = useFetch('', '');
+
+    const [searchList, setSearchList] = React.useState([]);
+    const [{data: searchData, isLoading: searchIsLoading, isError: searchIsError}, setSearchRequest] = useFetch('','');
+    
+    React.useEffect(() => {
+        console.log('effect search')
+        if(!searchData) return;
+        setSearchList(searchData.message.items);
+    },[searchData]);
     
     React.useEffect(() => {
         console.log('efecting')
-        if(!data) return;
-
+        if(!doiData) return;
+        console.log(doiData);
+        
         function buildReferenceObject(data) {
             return {
                 authors: data.author,
@@ -115,13 +168,15 @@ function App() {
                 doi: data.URL
             }
         }
-        const newReference = buildReferenceObject(data);
+        const newReference = buildReferenceObject(doiData);
         setDataList(oldList => {
             console.log(`Addins ${newReference.title} to dataList`);
             return {references: [newReference, ...oldList.references]}
         });
         
-    },[data]);
+    },[doiData]);
+
+    
 
     return (
         <main className="App">
@@ -141,15 +196,34 @@ function App() {
                 </div>
                 <p></p>
                 <article>
-                    <ReferenceForm setUrl={setUrl} ></ReferenceForm>
+                    DOI Search
+                    <DoiForm setRequest={setRequest}></DoiForm>
+                </article>
+                <p></p>
+                <article>
+                    Free Form Search
+                    <FreeSearchForm setSearchRequest={setSearchRequest}></FreeSearchForm>
                 </article>
             </section>
-            
+            <section>
+                <h2>Search Results</h2>
+                {searchIsLoading && <div>Loading search...</div>}
+                {searchIsError && <div>Opps, search: not found...</div>}
+
+                <ul className="left">
+                    {
+                        searchList.map( (item, index) => (
+                            <SearchItem item={item} key={index} index={index} setRequest={setRequest} setSearchList={setSearchList}></SearchItem>
+                        ))
+                    }
+                </ul>
+
+            </section>
             <section>
                 <h2>Reference List</h2>
                 
-                {isError && <div>Opps, DOI: not found...</div>}
-                {isLoading && <div>Loading...</div>}
+                {doiIsError && <div>Opps, DOI: not found...</div>}
+                {doiIsLoading && <div>Loading...</div>}
             
                 <ul className="left">
                     {
