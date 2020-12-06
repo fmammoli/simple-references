@@ -59,7 +59,7 @@ function useFreeSearch(initialSearchQuery) {
     function setSearchQuery(newSearchQuery) {
         const formattedQuery = newSearchQuery.split(' ').join('+');
         console.log(`Searching for for ${formattedQuery}`);
-        setRequest({url: `https://api.crossref.org/works?query.bibliographic=${formattedQuery}`});
+        setRequest({url: `https://api.crossref.org/works?query.bibliographic=${formattedQuery}&mailto=fmammoli@gmail.com`});
     }
 
     return [{data, isLoading, isError}, setSearchQuery]
