@@ -1,5 +1,25 @@
 import React from 'react';
 
+//Transform the response from DOI content negotiation into an simpler object
+function transformJournalArticle(data) {
+    const months = ['jan', 'fev', 'mar', 'abr', 'maio', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+
+    const reference = {
+        authors: data.author,
+        title: data.title,
+        subTitle: data.subtitle,
+        journal: data['container-title'],
+        volume: data.volume,
+        issue: data.issue,
+        pages: data.page,
+        month: data.issued['date-parts'][0][1],
+        year: data.issued['date-parts'][0][0],
+        availableAt: data.link[0].URL,
+        doi: data.URL,
+        type: data.type
+    };
+}
+
 function useFetch(initialUrl, initialData, initialOptions = '') {
     const [data, setData] = React.useState(initialData);
     //const [url, setUrl] = React.useState(initialUrl);
@@ -43,14 +63,35 @@ function useFetch(initialUrl, initialData, initialOptions = '') {
 function useDOI(initialDOI) {
     const contentNegotiationHeader = new Headers({'Accept': 'application/vnd.citationstyles.csl+json, application/rdf+xml, text/x-bibliography; style=associacao-brasileira-de-norams-tecnicas'});
     const options = {headers: contentNegotiationHeader, mode:'cors'};
-    const [{data, isLoading, isError}, setRequest] = useFetch(initialDOI, '', options);
+    const [{data: fetchData, isLoading, isError}, setRequest] = useFetch(initialDOI, '', options);
+
+    const [doiData, setDoiData] = React.useState('');
 
     function setDOI(doi) {
         const queryUrl = doi.includes('https://doi.org/') ? doi : 'https://doi.org/'+doi;
         setRequest({url: queryUrl, options: {...options}})
     }
 
-    return [{data, isLoading, isError}, setDOI]
+    React.useEffect(() => {
+        if(!fetchData) return;
+        const reference = {
+            authors: fetchData.author,
+            title: fetchData.title,
+            subTitle: fetchData.subtitle,
+            journal: fetchData['container-title'] ? fetchData['container-title'] : '',
+            volume: fetchData.volume,
+            issue: fetchData.issue,
+            pages: fetchData.page,
+            month: fetchData.issued?.['date-parts']?.[0][1],
+            year: fetchData.issued?.['date-parts']?.[0][0],
+            availableAt: fetchData.link?.[0]?.URL,
+            doi: fetchData.URL,
+            type: fetchData.type
+        };
+        setDoiData(reference);   
+    },[fetchData]);
+
+    return [{data: doiData, isLoading, isError}, setDOI]
 }
 
 function useFreeSearch(initialSearchQuery) {

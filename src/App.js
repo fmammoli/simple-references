@@ -37,14 +37,15 @@ function SearchItem({item, setDOI, setSearchList}) {
         setDOI(item.DOI);
         setSearchList([]);
     }
-    console.log(item);
     //onst authorsString = `${item.author.flatMap(element => `${element.family.toUpperCase()}, ${element.given}`).join('; ')}.`;
 
     return (
         <li>
-            <p>Title: {item.title[0]}</p>
+            <p>Title: {item.title[0]} {item.subtitle ? ':'+item.subtitle[0] : ''} </p>
             <p>URL: {item.URL}</p>
             <p>Type: {item.type}</p>
+            <p>Publisher: {item.publisher}</p>
+            <p>Author: {item.author?.[0].given}</p>
             <button onClick={event => handleOnClick(event)}>Add</button>
         </li>
     )
@@ -100,39 +101,20 @@ function App() {
     const [{data: searchData, isLoading: searchIsLoading, isError: searchIsError}, setSearchQuery] = useFreeSearch('');
     
     React.useEffect(() => {
-        console.log('effect search')
         if(!searchData) return;
+
         setSearchList(searchData.message.items);
     },[searchData]);
     
     React.useEffect(() => {
-        console.log('efecting')
         if(!doiData) return;
-        console.log(doiData);
-        
-        function buildReferenceObject(data) {
-            return {
-                authors: data.author,
-                title: data.title,
-                journal: data['container-title'],
-                volume: data.volume,
-                issue: data.issue,
-                pages: data.page,
-                month: data.issued['date-parts'][0][1],
-                year: data.issued['date-parts'][0][0],
-                availableAt: data.link[0].URL,
-                doi: data.URL
-            }
-        }
-        const newReference = buildReferenceObject(doiData);
+
         setDataList(oldList => {
-            console.log(`Addins ${newReference.title} to dataList`);
-            return {references: [newReference, ...oldList.references]}
+            console.log(`Addins ${doiData.title} to dataList`);
+            return {references: [doiData, ...oldList.references]}
         });
         
     },[doiData]);
-
-    
 
     return (
         <main className="App">
