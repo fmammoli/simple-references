@@ -47,7 +47,7 @@ function SearchItem({item, setDOI, setSearchList}) {
             <p>Type: {item.type}</p>
             <p>Publisher: {item.publisher}</p>
             <p>Author: {item.author?.[0].given} {item.author?.[0].family}</p>
-            <p>Year: {item.issued?.['date-parts']?.[0].[0]}</p>
+            <p>Year: {item.issued?.['date-parts']?.[0]?.[0]}</p>
             <button onClick={event => handleOnClick(event)}>Add</button>
         </li>
     )
