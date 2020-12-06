@@ -29,12 +29,10 @@ function AbntItem({reference}) {
 
     return (
         <p>{formatReference(reference)}</p>
-    //<p>{`${authors}. ${reference.title}. ${reference.journal}, v. ${reference.volume}, n. ${reference.issue}, p. ${reference.pages}, ${months[reference.month-1]}. ${reference.year}. Disponível em: <${reference.available_at}>, DOI: <${reference.doi}>`}</p>
     )
 }
 
 function SearchItem({item, setDOI, setSearchList}) {
-
     function handleOnClick(event) {
         setDOI(item.DOI);
         setSearchList([]);
@@ -145,6 +143,9 @@ function App() {
                 </p>
                 <p>
                     This uses simple content negotiation to retrieve metadata from DOIs.
+                </p>
+                <p>
+                    Free form search uses the CrossRef API.
                 </p>
                 <div>
                     <p>Here are some DOIs you can test:</p>
