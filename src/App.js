@@ -2,10 +2,10 @@ import React from 'react';
 import {useDOI, useFreeSearch} from './Hooks';
 import './App.css';
 
-    //Formato Documento Eletrônico(ABNT)
+//Formato Documento Eletrônico(ABNT)
 
-    //Sobrenome, Nome. Titulo. Nome do Journal, cidade, volume, numero, paginas, mes, ano.
-    //MONTEIRO, Marko. Construindo imagens e territórios: pensando a visualidade e a materialidade do sensoriamento remoto. Hist. cienc. saude-Manguinhos,  Rio de Janeiro ,  v. 22, n. 2, p. 577-591,  jun.  2015 .   Disponível em <http://www.scielo.br/scielo.php?script=sci_arttext&pid=S0104-59702015000200016&lng=pt&nrm=iso>. acessos em  29  nov.  2020.  https://doi.org/10.1590/S0104-59702015000200006.
+//Sobrenome, Nome. Titulo. Nome do Journal, cidade, volume, numero, paginas, mes, ano.
+//MONTEIRO, Marko. Construindo imagens e territórios: pensando a visualidade e a materialidade do sensoriamento remoto. Hist. cienc. saude-Manguinhos,  Rio de Janeiro ,  v. 22, n. 2, p. 577-591,  jun.  2015 .   Disponível em <http://www.scielo.br/scielo.php?script=sci_arttext&pid=S0104-59702015000200016&lng=pt&nrm=iso>. acessos em  29  nov.  2020.  https://doi.org/10.1590/S0104-59702015000200006.
 
 function AbntItem({reference}) {
 
@@ -41,11 +41,13 @@ function SearchItem({item, setDOI, setSearchList}) {
 
     return (
         <li>
-            <p>Title: {item.title[0]} {item.subtitle ? ':'+item.subtitle[0] : ''} </p>
+            <p>Title: {item.title[0]}</p>
+            <p>Subtitle: {item.subtitle?.[0]}</p>
             <p>URL: {item.URL}</p>
             <p>Type: {item.type}</p>
             <p>Publisher: {item.publisher}</p>
-            <p>Author: {item.author?.[0].given}</p>
+            <p>Author: {item.author?.[0].given} {item.author?.[0].family}</p>
+            <p>Year: {item.issued?.['date-parts']?.[0].[0]}</p>
             <button onClick={event => handleOnClick(event)}>Add</button>
         </li>
     )
@@ -124,10 +126,13 @@ function App() {
                     Input a DOI and get a ABNT formatted reference.
                 </p>
                 <p>
+                * It only works for journal articles yet*
+                </p>
+                <p>
                     This uses simple content negotiation to retrieve metadata from DOIs.
                 </p>
                 <p>
-                    Free form search uses the CrossRef API.
+                    You can search by text in the Free Text Search. Text searches uses the CrossRef API, so it works better for journal articles than books.
                 </p>
                 <div>
                     <p>Here are some DOIs you can test:</p>
@@ -148,6 +153,7 @@ function App() {
             </section>
             <section>
                 <h2>Search Results</h2>
+                <button onClick={event => setSearchList([])}>Clear Search</button>
                 {searchIsLoading && <div>Loading search...</div>}
                 {searchIsError && <div>Opps, search: not found...</div>}
 
