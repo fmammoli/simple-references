@@ -39,11 +39,13 @@ function SearchItem({item, setRequest, setSearchList}) {
         setRequest({url: "https://doi.org/"+item.DOI, options: {headers: contentNegotiationHeader, mode:'cors'}});
         setSearchList([]);
     }
+    console.log(item);
+    //onst authorsString = `${item.author.flatMap(element => `${element.family.toUpperCase()}, ${element.given}`).join('; ')}.`;
 
     return (
         <li>
             <p>Title: {item.title[0]}</p>
-            <p>Type: {item.URL}</p>
+            <p>URL: {item.URL}</p>
             <p>Type: {item.type}</p>
             <button onClick={event => handleOnClick(event)}>Add</button>
         </li>
@@ -143,7 +145,6 @@ function App() {
     
     React.useEffect(() => {
         console.log('effect search')
-        console.log(searchData);
         if(!searchData) return;
         setSearchList(searchData.message.items);
     },[searchData]);
