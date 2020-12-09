@@ -104,7 +104,7 @@ function App() {
     
     React.useEffect(() => {
         if(!searchData) return;
-
+        
         setSearchList(searchData.message.items);
     },[searchData]);
     

@@ -63,6 +63,7 @@ function useFetch(initialUrl, initialData, initialOptions = '') {
 function useDOI(initialDOI) {
     const contentNegotiationHeader = new Headers({'Accept': 'application/vnd.citationstyles.csl+json, application/rdf+xml, text/x-bibliography; style=associacao-brasileira-de-norams-tecnicas'});
     const options = {headers: contentNegotiationHeader, mode:'cors'};
+    
     const [{data: fetchData, isLoading, isError}, setRequest] = useFetch(initialDOI, '', options);
 
     const [doiData, setDoiData] = React.useState('');
