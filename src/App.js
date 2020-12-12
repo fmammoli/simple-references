@@ -1,5 +1,5 @@
 import React from 'react';
-import {useDOI, useFreeSearch} from './Hooks';
+import {useDOI, useDOITextResponse, useFreeSearch} from './Hooks';
 import './App.css';
 
 //Formato Documento Eletrônico(ABNT)
@@ -25,9 +25,9 @@ function AbntItem({reference}) {
         const doiString = reference.doi ? `DOI: ${reference.doi}` : '';
         return [authorsString, titleString, journalString, volumeString, issueString, pagesString, monthString, yearString, availableAtSring, doiString].filter(val => val).join(' ');
     }
-    
 
-    return (
+    
+    return (        
         <p>{formatReference(reference)}</p>
     )
 }
@@ -41,12 +41,12 @@ function SearchItem({item, setDOI, setSearchList}) {
 
     return (
         <li>
-            <p>Title: {item.title[0]}</p>
+            <p>Title: {item.title?.[0]}</p>
             <p>Subtitle: {item.subtitle?.[0]}</p>
             <p>URL: {item.URL}</p>
             <p>Type: {item.type}</p>
             <p>Publisher: {item.publisher}</p>
-            <p>Author: {item.author?.[0].given} {item.author?.[0].family}</p>
+            <p>Author: {item.author?.[0].given} {item.author?.[0]?.family}</p>
             <p>Year: {item.issued?.['date-parts']?.[0]?.[0]}</p>
             <button onClick={event => handleOnClick(event)}>Add</button>
         </li>
@@ -54,12 +54,15 @@ function SearchItem({item, setDOI, setSearchList}) {
 }
 
 function DoiForm({setDOI}) {
-    const [query, setQuery] = React.useState("");
+    const [query, setQuery] = React.useState('');
 
     function handleSubmit(event) {
         event.preventDefault();
-        setDOI(query);
-        setQuery('');
+        if(query !== '') {
+            setDOI(query);
+            setQuery('');
+        }
+        
     }
 
     return (
@@ -80,8 +83,11 @@ function FreeSearchForm({setSearchQuery}) {
 
     function handleSubmit(event) {
         event.preventDefault();
-        setSearchQuery(query);
-        setQuery('');
+        if(query !== ''){
+            console.log(query);
+            setSearchQuery(query);
+            setQuery('');
+        }
     }
 
     return (
@@ -95,27 +101,27 @@ function FreeSearchForm({setSearchQuery}) {
 
 function App() {
     const [dataList, setDataList] = React.useState({references: []});
-    const [{data: doiData, isLoading: doiIsLoading, isError: doiIsError}, setDOI] = useDOI('');
+    const [{data: doiData, isLoading: doiIsLoading, isError: doiIsError}, setDOI] = useDOITextResponse(null);
 
     //const [{data, isLoading, isError}, setUrl] = useFetch('', '');
 
     const [searchList, setSearchList] = React.useState([]);
-    const [{data: searchData, isLoading: searchIsLoading, isError: searchIsError}, setSearchQuery] = useFreeSearch('');
+    const [{data: searchData, isLoading: searchIsLoading, isError: searchIsError}, setSearchQuery] = useFreeSearch(null);
     
     React.useEffect(() => {
-        if(!searchData) return;
-        
-        setSearchList(searchData.message.items);
+        if(searchData) {
+            setSearchList(searchData?.message?.items);    
+        }
     },[searchData]);
     
     React.useEffect(() => {
-        if(!doiData) return;
-
-        setDataList(oldList => {
-            console.log(`Addins ${doiData.title} to dataList`);
-            return {references: [doiData, ...oldList.references]}
-        });
-        
+        console.log(`Doi Effect`);
+        if (doiData) {
+            setDataList(oldList => {
+                console.log(`Adding ${doiData} to dataList`);
+                return {references: [doiData, ...oldList.references]}
+            });    
+        }        
     },[doiData]);
 
     return (
@@ -153,17 +159,20 @@ function App() {
             </section>
             <section>
                 <h2>Search Results</h2>
-                <button onClick={event => setSearchList([])}>Clear Search</button>
+                {!!searchList.length && <button onClick={event => setSearchList([])}>Clear Search</button>}
                 {searchIsLoading && <div>Loading search...</div>}
                 {searchIsError && <div>Opps, search: not found...</div>}
 
+                { searchList && 
                 <ul className="left">
-                    {
-                        searchList.map( (item, index) => (
-                            <SearchItem item={item} key={index} index={index} setDOI={setDOI} setSearchList={setSearchList}></SearchItem>
-                        ))
-                    }
+                { 
+                    searchList.map( (item, index) => (
+                        <SearchItem item={item} key={index} index={index} setDOI={setDOI} setSearchList={setSearchList}></SearchItem>
+                    ))
+                }
                 </ul>
+                }
+                
 
             </section>
             <section>
@@ -171,15 +180,16 @@ function App() {
                 
                 {doiIsError && <div>Opps, DOI: not found...</div>}
                 {doiIsLoading && <div>Loading...</div>}
-            
-                <ul className="left">
+                
+                { dataList && 
+                    <ul className="left">
                     {
                         dataList.references.map( (item, index) => (
-                            <AbntItem reference={item} key={index} index={index}></AbntItem>
+                            typeof(item) === 'string' ? <p key={index} index={index}>{item}</p> : <AbntItem reference={item} key={index} index={index}></AbntItem>
                         ))
                     }
-                </ul>
-                
+                    </ul>
+                }
             </section>
         </main>
     );
