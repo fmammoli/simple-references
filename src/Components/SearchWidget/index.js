@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { useCrossRefApi } from "../../Hooks";
 
@@ -66,6 +66,27 @@ function SearchBar({ setSearchQuery, setIsSearching, ...props }) {
   );
 }
 
+function DoiSearchBar({ addToRefList, ...props }) {
+  const [query, setQuery] = useState("");
+
+  const inputRef = useRef(null);
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    addToRefList(query);
+  }
+
+  return (
+    <form onSubmit={(event) => handleSubmit(event)}>
+      <Input
+        placeholder={"https://doi..."}
+        onChange={(event) => setQuery(event.target.value)}
+      ></Input>
+      <button type="submit">Search</button>
+    </form>
+  );
+}
+
 function SearchResults({ items, addToRefList, ...props }) {
   return (
     <div>
@@ -120,7 +141,7 @@ function SearchWidget({ addToRefList, ...props }) {
         setIsSearching={setIsSearching}
         setSearchQuery={setSearchQuery}
       ></SearchBar>
-
+      <DoiSearchBar addToRefList={addToRefList}></DoiSearchBar>
       <SearchResultContainer>
         {isSearching && <h2>Search Results</h2>}
         {searchResults.length > 0 && (

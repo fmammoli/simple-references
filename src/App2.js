@@ -2,6 +2,7 @@ import styled from "styled-components";
 import React, { useState, useEffect, useRef } from "react";
 
 import SearchWidget from "./Components/SearchWidget";
+// import SearchWidget from "./Components/ReferenceListWidget";
 import { useDoiTextResponse } from "./Hooks";
 
 const Title = styled.h1`
@@ -16,9 +17,6 @@ function App2(props) {
   const [textRefs, setTextRef] = useState();
 
   function addToRefList(doi) {
-    //TODO add only if it is new to the array
-    //setRefList((refs) => [{ doi: doi, text: "Loading..." }, ...refs]);
-    // This feels like a dirty solution
     setRefList((refs) => {
       if (refs.find((item) => item.doi === doi)) {
         return [...refs];
@@ -69,6 +67,7 @@ function App2(props) {
         <Title>Simple Reference</Title>
       </header>
       <SearchWidget addToRefList={addToRefList}></SearchWidget>
+      {/* <ReferenceListWidget refList={refList}></ReferenceListWidget> */}
       <h2>My References</h2>
       {refList.length > 0 && <button onClick={clearRefList}>Clear</button>}
       {refList.length > 0 && (
@@ -87,7 +86,6 @@ function App2(props) {
         <p>Export Area</p>
         <textarea
           ref={el}
-          name=""
           id="textArea"
           cols="30"
           rows="10"
