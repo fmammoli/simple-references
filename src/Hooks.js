@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 
 //Transform the response from DOI content negotiation into an simpler object
 function transformJournalArticle(data) {
@@ -66,14 +66,18 @@ function useFetch2(initialUrl, initialOptions = "") {
         const result = options
           ? await fetch(url, { ...options })
           : await fetch(url);
-        //const resultData = await result.json();
-        let resultData = null;
-        if (
-          options.headers.get("Accept") ===
-          "text/x-bibliography; style=associacao-brasileira-de-normas-tecnicas"
-        ) {
-          resultData = await result.text();
-        }
+        const resultData = await result.json();
+        console.log(resultData);
+        // if (
+        //   options.headers.get("Accept") ===
+        //   "text/x-bibliography; style=associacao-brasileira-de-normas-tecnicas"
+        // ) {
+        //   console.log("aqui");
+        //   resultData = await result.text();
+        // } else {
+        //   console.log("aqui");
+        //   resultData = await result.json();
+        // }
         setData(resultData);
       } catch (error) {
         setIsError(true);
@@ -212,6 +216,73 @@ function useDOI(initialDOI) {
   return [{ data: doiData, isLoading, isError }, setDOI];
 }
 
+function useDoiTextResponse(initialDoi) {
+  const [data, setData] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isError, setIsError] = useState(false);
+
+  const [doi, setDoi] = useState(initialDoi);
+
+  useEffect(() => {
+    async function fetchDoi(doi) {
+      console.log("Trying to fetch doi: ", doi);
+      setIsLoading(true);
+      try {
+        const contentNegotiationHeader = new Headers({
+          Accept:
+            "text/x-bibliography; style=associacao-brasileira-de-normas-tecnicas",
+        });
+        const options = { headers: contentNegotiationHeader, mode: "cors" };
+        const result = await fetch(doi, { ...options });
+        const data = await result.text();
+        setIsLoading(false);
+        setData({ text: data, doi: doi });
+      } catch (error) {
+        setIsLoading(false);
+        setIsError(error);
+      }
+    }
+
+    if (doi && doi !== "") fetchDoi(doi);
+  }, [doi]);
+
+  return [{ data, isLoading, isError }, setDoi];
+}
+
+function useCrossRefApi(initialSearchQuery) {
+  const [data, setData] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isError, setIsError] = useState(false);
+
+  const [req, setSearchQuery] = useState(initialSearchQuery);
+
+  useEffect(() => {
+    async function fetchCrossRefApi(req) {
+      console.log("Trying to fetch from CrossRefAPI: ", req.query);
+      console.log(
+        `https://api.crossref.org/works?${req.query}&mailto=fmammoli@gmail.com&select=DOI,title,author,subtitle,issued,type,URL,publisher&sort=relevance&order=desc&filter=type:book-chapter`
+      );
+      setIsLoading(true);
+      try {
+        const result = await fetch(
+          `https://api.crossref.org/works?${req.query}&mailto=fmammoli@gmail.com&select=DOI,title,author,subtitle,issued,type,URL,publisher&sort=relevance&order=desc&filter=type:journal-article`,
+          req.options ? { ...req.options } : null
+        );
+        const data = await result.json();
+        setIsLoading(false);
+        setData(data.message.items);
+      } catch (error) {
+        setIsLoading(false);
+        setIsError(error);
+      }
+    }
+
+    if (req && req !== "") fetchCrossRefApi(req);
+  }, [req]);
+
+  return [{ data, isLoading, isError }, setSearchQuery];
+}
+
 function useFreeSearch(initialSearchQuery) {
   const [{ data, isLoading, isError }, setRequest] = useFetch(
     initialSearchQuery
@@ -220,12 +291,21 @@ function useFreeSearch(initialSearchQuery) {
   function setSearchQuery(newSearchQuery) {
     const formattedQuery = newSearchQuery.split(" ").join("+");
     console.log(`Searching for for ${formattedQuery}`);
+    //Making some adjustments on the search query
+    // filter=type:journal-article
     setRequest({
-      url: `https://api.crossref.org/works?query=${formattedQuery}&mailto=fmammoli@gmail.com`,
+      url: `https://api.crossref.org/works?query.author=${formattedQuery}&mailto=fmammoli@gmail.com&select=DOI,title,author,subtitle,issued,type,URL,publisher&sort=relevance&order=desc&rows=1`,
     });
   }
 
   return [{ data, isLoading, isError }, setSearchQuery];
 }
 
-export { useFetch, useDOI, useDOITextResponse, useFreeSearch };
+export {
+  useFetch,
+  useDOI,
+  useDOITextResponse,
+  useFreeSearch,
+  useCrossRefApi,
+  useDoiTextResponse,
+};
